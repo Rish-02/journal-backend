@@ -19,6 +19,8 @@ public class JournalEntry {
     private String title;
     @NonNull
     private String content;
+    @NonNull
+    private String visibility;
 
     private LocalDateTime date;
 }

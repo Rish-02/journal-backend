@@ -1,14 +1,21 @@
 package net.engdigest.journal.controller;
 
 import net.engdigest.journal.entity.User;
+import net.engdigest.journal.repository.UserRepository;
 import net.engdigest.journal.services.JournalEntryService;
 import net.engdigest.journal.services.UserService;
 
+import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,43 +26,28 @@ import java.util.Optional;
 public class userController {
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private UserRepository userRepository;
 
-    @GetMapping
-    public List<User> getAll(){
-         return userService.getAll();
+    @PutMapping
+    public ResponseEntity<?> updateUser(@RequestBody User user){
+    	
+    	org.springframework.security.core.Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    	String userName = authentication.getName();
+        User userInDb = userService.findByUserName(userName);
+	    userInDb.setUserName(user.getUserName());
+	    userInDb.setPassword(user.getPassword());
+	    userService.saveNewEntry(userInDb);
+	    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+    
+    @DeleteMapping
+    public ResponseEntity<?> deleteAuthenticatedUser() {
+    	org.springframework.security.core.Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    	String userName = authentication.getName();
+    	userRepository.deleteByUserName(userName);
 
-    @PostMapping
-    public void CreatUser(@RequestBody User user) {
-            userService.saveEntry(user);
-    }
-
-
-//    @GetMapping("/id/{myId}")
-//    public ResponseEntity<JournalEntry> getJournalEntryById(@PathVariable ObjectId myId){
-//        Optional<JournalEntry> journalEntry = journalEntryService.findById(myId);
-//        if(journalEntry.isPresent()) {
-//        	return new ResponseEntity<>(journalEntry.get(),HttpStatus.OK);
-//        }
-//        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-//    }
-//
-//
-//    @DeleteMapping("/id/{myId}")
-//    public ResponseEntity<?> deleteJournalId(@PathVariable ObjectId myId){
-//        journalEntryService.deleteById(myId);
-//        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-//    }
-
-
-    @PutMapping("/{userName}")
-    public ResponseEntity<?> updateUser(@RequestBody User user, @PathVariable String userName){
-       User userInDb = userService.findByUserName(userName);
-       if(userInDb != null) {
-    	   userInDb.setUserName(user.getUserName());
-    	   userInDb.setPassword(user.getPassword());
-    	   userService.saveEntry(userInDb);
-       }
-	return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    	return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

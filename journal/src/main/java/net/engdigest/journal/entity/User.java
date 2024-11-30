@@ -23,6 +23,10 @@ public class User {
 	private String userName;
 	@NonNull
 	private String password;
+	
+	private List<String> roles;
+	@NonNull
+	private boolean enabled;
 	@DBRef
 	private List<JournalEntry> journal_Entry= new ArrayList<>();
 }

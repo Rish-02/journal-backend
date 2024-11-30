@@ -27,12 +27,11 @@ public class JournalEntryService {
     @Transactional
 	public void saveEntry(JournalEntry journalEntry, String userName) {
         	try {
-        		User user = userService.findByUserName(userName);  //user nikala
+        		User user = userService.findByUserName(userName);  //user
             	journalEntry.setDate(LocalDateTime.now());
             	JournalEntry saved = journalEntryRepository.save(journalEntry); //journal entry save
-            	user.getJournal_Entry().add(saved); //users find hua tha uski joiurnal entry m add rkadi h entry
-//            	user.setUserName(null);
-            	userService.saveEntry(user); //user saved with new journal entry
+            	user.getJournal_Entry().add(saved);
+            	userService.saveUser(user); //user saved with new journal entry
         	}catch(Exception e) {
         		System.out.print(e);
         		throw new RuntimeException("An error occured",e);
@@ -46,16 +45,29 @@ public class JournalEntryService {
         return journalEntryRepository.findAll();
     }
 
+	public List<JournalEntry> getOpenJournalEntries() {
+		return journalEntryRepository.findByVisibility("public");
+	}
+
     public Optional<JournalEntry> findById(ObjectId id){
         return journalEntryRepository.findById(id);
     }
 
-    public void deleteById(ObjectId id, String userName){
-    	User user = userService.findByUserName(userName);
-    	user.getJournal_Entry().removeIf(x->x.getId().equals(id));
-    	userService.saveEntry(user);
-        journalEntryRepository.deleteById(id);
-    }
+	@Transactional
+	public boolean deleteById(ObjectId id, String userName) {
+		boolean removed = false;
+		try {
+			User user = userService.findByUserName(userName);
+			removed = user.getJournal_Entry().removeIf(x -> x.getId().equals(id));
+			if (removed) {
+				userService.saveUser(user);
+				journalEntryRepository.deleteById(id);
+			}
+		} catch (Exception e) {
+			log.error("Error ",e);
+			throw new RuntimeException("An error occurred while deleting the entry.", e);
+		}
+		return removed;
+	}
+
 }
-//controller call service == best practice
-//        service call repo
